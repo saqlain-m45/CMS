@@ -2,7 +2,7 @@
 // backend/common.php
 require 'db.php';
 handleCors();
-session_start();
+initSession();
 
 $user_role = $_SESSION['role'] ?? null;
 // Allow read-only access to notices for everyone? Or just auth users. 

@@ -18,11 +18,12 @@ function getDB() {
 function handleCors() {
     // Allow from any origin
     if (isset($_SERVER['HTTP_ORIGIN'])) {
-        // Decide if the origin in $_SERVER['HTTP_ORIGIN'] is one
-        // you want to allow, and if so:
         header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
         header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Max-Age: 86400');    // cache for 1 day
+    } else {
+        // Fallback for tools/curl
+        header("Access-Control-Allow-Origin: *");
     }
 
     // Access-Control headers are received during OPTIONS requests
@@ -35,6 +36,30 @@ function handleCors() {
             header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 
         exit(0);
+    }
+}
+
+// Robust Session Initialization
+function initSession() {
+    if (session_status() === PHP_SESSION_NONE) {
+        // Set secure session parameters
+        session_set_cookie_params([
+            'lifetime' => 0, // Session cookie (lasts until browser closed)
+            'path' => '/',
+            'domain' => '', // Empty for localhost
+            'secure' => false, // Set to true if using HTTPS
+            'httponly' => true,
+            'samesite' => 'Lax' // Important for cross-port localhost
+        ]);
+        
+        // Use local session directory to avoid permission issues
+        $sessionPath = __DIR__ . '/sessions';
+        if (!file_exists($sessionPath)) {
+            mkdir($sessionPath, 0777, true);
+        }
+        session_save_path($sessionPath);
+
+        session_start();
     }
 }
 ?>

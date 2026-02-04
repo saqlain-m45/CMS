@@ -3,7 +3,7 @@
 require 'db.php';
 handleCors();
 
-session_start();
+initSession();
 
 $action = $_GET['action'] ?? '';
 

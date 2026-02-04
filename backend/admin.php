@@ -2,7 +2,7 @@
 // backend/admin.php
 require 'db.php';
 handleCors();
-session_start();
+initSession();
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     http_response_code(403);

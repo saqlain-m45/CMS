@@ -2,7 +2,7 @@
 // backend/student.php
 require 'db.php';
 handleCors();
-session_start();
+initSession();
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
      if ($_SESSION['role'] !== 'student' && $_SESSION['role'] !== 'admin') {
