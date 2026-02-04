@@ -42,14 +42,17 @@ function handleCors() {
 // Robust Session Initialization
 function initSession() {
     if (session_status() === PHP_SESSION_NONE) {
+        // Determine if we are on HTTPS (Ngrok/Production)
+        $isHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        
         // Set secure session parameters
         session_set_cookie_params([
-            'lifetime' => 0, // Session cookie (lasts until browser closed)
+            'lifetime' => 86400, 
             'path' => '/',
-            'domain' => '', // Empty for localhost
-            'secure' => false, // Set to true if using HTTPS
+            'domain' => '', 
+            'secure' => true, // Must be true for SameSite=None
             'httponly' => true,
-            'samesite' => 'Lax' // Important for cross-port localhost
+            'samesite' => 'None' // Required for Cross-Site (Vercel -> Ngrok)
         ]);
         
         // Use local session directory to avoid permission issues
