@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     const api = axios.create({
-        baseURL: 'http://localhost:8000',
+        baseURL: window.location.hostname === 'localhost' ? 'http://localhost:8000' : '/backend',
         withCredentials: true,
         headers: {
             'Content-Type': 'application/json'

@@ -1,11 +1,12 @@
 <?php
 // backend/db.php
 
+require_once 'db_config.php';
+
 function getDB() {
-    $dbPath = __DIR__ . '/db/cms.db';
-    
     try {
-        $pdo = new PDO("sqlite:" . $dbPath);
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         return $pdo;
