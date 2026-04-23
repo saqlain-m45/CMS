@@ -1,93 +1,92 @@
-// frontend/src/pages/Login.jsx
 import { useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, ArrowRight } from 'lucide-react';
 
-const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const { login } = useAuth();
-    const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
+export default function Login() {
+  const { user, login, loading } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('admin@cms.local');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
+  if (!loading && user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
+    return <Navigate to="/student" replace />;
+  }
 
-        const res = await login(email, password);
+  async function onSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const u = await login(email, password);
+      if (u.role === 'admin') navigate('/admin');
+      else if (u.role === 'teacher') navigate('/teacher');
+      else navigate('/student');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setBusy(false);
+    }
+  }
 
-        if (res.success) {
-            // Navigation handled by router
-        } else {
-            setError(res.error);
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-slate-50 px-4">
-            <div className="glass-card w-full max-w-md bg-white border-none shadow-2xl animate-fade-in p-8 md:p-10">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h1>
-                    <p className="text-gray-500">Sign in to access your dashboard</p>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group mb-5">
-                        <label className="form-label text-sm text-slate-600">Username / Reg No / Email</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                className="form-input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
-                                placeholder="STU-1234 or email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-group mb-8">
-                        <label className="form-label text-sm text-slate-600">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="password"
-                                className="form-input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className={`w-full btn btn-primary flex justify-center items-center gap-2 py-3 rounded-xl shadow-lg shadow-indigo-200 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? 'Signing in...' : 'Sign In'}
-                        {!isLoading && <ArrowRight size={20} />}
-                    </button>
-
-                    <div className="mt-6 text-center text-sm text-gray-500">
-                        <p>Demo Admin: admin / admin123</p>
-                    </div>
-                </form>
-            </div>
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-icon">C</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>CollegeMS</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>Management System</div>
+          </div>
         </div>
-    );
-};
+        <h1>Welcome back</h1>
+        <p className="sub">Sign in with your institutional account to continue.</p>
 
-export default Login;
+        {error && <div className="alert alert-error">{error}</div>}
+
+        <form onSubmit={onSubmit}>
+          <label htmlFor="login-email">Email address</label>
+          <input
+            id="login-email"
+            className="inp"
+            type="email"
+            autoComplete="username"
+            placeholder="you@institution.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <label htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            className="inp"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit" className="login-btn" disabled={busy}>
+            {busy ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="spinner" style={{ width: 18, height: 18, borderWidth: 2, borderTopColor: '#fff', borderColor: 'rgba(255,255,255,0.3)' }} />
+                Signing in…
+              </span>
+            ) : 'Sign In'}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+            Default: <strong>admin@cms.local</strong> / <strong>Admin@123</strong>
+          </p>
+          <Link to="/">← Back to Home</Link>
+        </div>
+      </div>
+    </div>
+  );
+}

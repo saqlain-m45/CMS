@@ -1,83 +1,89 @@
-// frontend/src/pages/Home.jsx
-import { ArrowRight, BookOpen, Users, Award, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 
-const Home = () => {
-    return (
-        <div className="flex flex-col min-h-screen">
-            {/* Hero Section with Banner Image */}
-            <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden flex items-center min-h-[700px]">
-                {/* Background Image & Overlay */}
-                <div className="absolute inset-0 z-0">
-                    <img
-                        src="/hero.png"
-                        alt="University Campus"
-                        className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-slate-900/60 gradient-mask-b-90"></div>
-                </div>
+const FEATURES = [
+  { icon: '📚', title: 'Course Management', desc: 'Create and manage courses, sections, and academic offerings with a comprehensive curriculum builder.', color: 'indigo' },
+  { icon: '👨‍🎓', title: 'Student Enrollment', desc: 'Streamlined registration workflows with approval-based enrollment and real-time status tracking.', color: 'blue' },
+  { icon: '📝', title: 'Assignments & Quizzes', desc: 'Teachers can create, distribute, and grade assignments with file upload and inline feedback support.', color: 'green' },
+  { icon: '📊', title: 'Attendance Tracking', desc: 'Mark and monitor daily attendance with detailed analytics and attendance percentage reports.', color: 'amber' },
+  { icon: '🏆', title: 'Results & Grading', desc: 'End-to-end results workflow with teacher submission and admin approval before publishing.', color: 'red' },
+  { icon: '🔒', title: 'Role-Based Access', desc: 'Secure multi-role system — Admins, Teachers, and Students each have tailored dashboards and permissions.', color: 'indigo' },
+];
 
-                <div className="container mx-auto px-6 text-center relative z-10">
-                    <span className="inline-block py-1 px-3 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-sm font-semibold mb-6 animate-fade-in backdrop-blur-sm">
-                        Run Your Institution Smarter
-                    </span>
-                    <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight animate-fade-in drop-shadow-lg">
-                        Empowering Minds, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Managed with Ease.</span>
-                    </h1>
-                    <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto animate-fade-in leading-relaxed">
-                        A complete college management solution for Students, Teachers, and Administrators. Experience the future of academic administration today.
-                    </p>
-                    <div className="flex justify-center gap-4 animate-fade-in">
-                        <Link to="/login" className="btn btn-primary flex items-center gap-2 border-none shadow-indigo-500/50 shadow-lg hover:shadow-indigo-500/70">
-                            Get Started <ArrowRight size={20} />
-                        </Link>
-                        <Link to="/about" className="px-6 py-3 rounded-xl border border-white/20 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm">
-                            Learn More
-                        </Link>
-                    </div>
-                </div>
-            </section>
+const STATS = [
+  { num: '500+', label: 'Students Managed' },
+  { num: '50+', label: 'Courses Offered' },
+  { num: '30+', label: 'Expert Teachers' },
+  { num: '99.9%', label: 'System Uptime' },
+];
 
-            {/* Features Section */}
-            <section className="py-20 bg-white">
-                <div className="container mx-auto px-6 text-center">
-                    <h2 className="text-3xl font-bold text-slate-900 mb-4">Why Choose CMS?</h2>
-                    <p className="text-gray-500 max-w-2xl mx-auto mb-16">Streamline your institution's workflow with our comprehensive suite of tools designed for modern education.</p>
+export default function Home() {
+  return (
+    <>
+      <Navbar />
 
-                    <div className="grid md:grid-cols-3 gap-12">
-                        <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
-                                <Users size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-3">Role-Based Access</h3>
-                            <p className="text-gray-500 leading-relaxed">
-                                Secure and distinct portals for Admins, Teachers, and Students to manage their respective tasks efficiently perfectly aligned with your hierarchy.
-                            </p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                                <BookOpen size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-3">Academic Management</h3>
-                            <p className="text-gray-500 leading-relaxed">
-                                Seamlessly manage classes, subjects, assignments, and attendance records in one centralized, real-time system accessible from anywhere.
-                            </p>
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
-                                <Award size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-3">Performance Tracking</h3>
-                            <p className="text-gray-500 leading-relaxed">
-                                Real-time insights into student performance, grades, and progress reports for better academic outcomes and faster feedback loops.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+      {/* Hero */}
+      <section className="hero">
+        <div className="hero-content">
+          <div className="hero-badge">🎓 Modern College Management</div>
+          <h1>Manage Your <span>Institution</span> Effortlessly</h1>
+          <p>
+            A comprehensive, all-in-one platform for managing courses, students, teachers,
+            attendance, assignments, and results — designed for modern educational institutions.
+          </p>
+          <div className="hero-actions">
+            <Link to="/login" className="hero-btn hero-btn-primary">
+              Get Started →
+            </Link>
+            <Link to="/about" className="hero-btn hero-btn-secondary">
+              Learn More
+            </Link>
+          </div>
         </div>
-    );
-};
+      </section>
 
-export default Home;
+      {/* Features */}
+      <section className="features-section">
+        <div className="section-header">
+          <h2>Everything You Need</h2>
+          <p>Powerful features designed to simplify academic management and enhance the learning experience.</p>
+        </div>
+        <div className="features-grid">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="feature-card">
+              <div className={`feature-icon ${f.color}`}>{f.icon}</div>
+              <h3>{f.title}</h3>
+              <p>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="stats-section">
+        <div className="stats-grid">
+          {STATS.map((s) => (
+            <div key={s.label} className="stat-block">
+              <div className="stat-num">{s.num}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="cta-section">
+        <h2>Ready to Transform Your Institution?</h2>
+        <p>Join hundreds of educational organizations already using CollegeMS to streamline their operations.</p>
+        <Link to="/login" className="hero-btn hero-btn-primary">
+          Sign In to Dashboard →
+        </Link>
+      </section>
+
+      {/* Footer */}
+      <footer className="site-footer">
+        <p>© {new Date().getFullYear()} College Management System. All rights reserved.</p>
+      </footer>
+    </>
+  );
+}

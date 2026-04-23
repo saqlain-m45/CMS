@@ -1,72 +1,88 @@
-// frontend/src/pages/About.jsx
-import { CheckCircle } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
-const About = () => {
-    return (
-        <div className="pt-24 pb-20">
-            {/* Header */}
-            <div className="container mx-auto px-6 text-center mb-16">
-                <h1 className="text-4xl font-bold text-slate-900 mb-4">About Our Mission</h1>
-                <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                    We are dedicated to transforming education through technology, making management seamless and learning accessible.
-                </p>
-            </div>
+const VALUES = [
+  { icon: '🎯', title: 'Our Mission', desc: 'To provide educational institutions with a powerful, intuitive management platform that simplifies academic operations and enhances collaboration between administrators, teachers, and students.' },
+  { icon: '👁️', title: 'Our Vision', desc: 'To become the leading college management solution trusted by institutions worldwide, setting the standard for digital academic excellence and operational efficiency.' },
+  { icon: '💡', title: 'Our Approach', desc: 'We believe in building tools that are both powerful and easy to use. Every feature is designed with real-world academic workflows in mind, ensuring seamless adoption and immediate productivity gains.' },
+];
 
-            {/* Two Column Section */}
-            <div className="container mx-auto px-6 mb-24">
-                <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div className="order-2 md:order-1">
-                        <img
-                            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop"
-                            alt="Team working"
-                            className="rounded-2xl shadow-xl w-full"
-                        />
-                    </div>
-                    <div className="order-1 md:order-2 text-center md:text-left">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-6">Driving Innovation in Education</h2>
-                        <p className="text-gray-500 mb-6 leading-relaxed">
-                            Founded in 2024, CMS started with a simple idea: Educators should spend more time teaching and less time managing paperwork. Today, we serve institutions helping them automate attendance, grading, and scheduling.
-                        </p>
-                        <p className="text-gray-500 mb-8 leading-relaxed">
-                            Our platform is built with the latest technology to ensure security, speed, and reliability. We believe in user-centric design that requires zero training to get started.
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
-                            {['Real-time Sync', 'Secure Data', 'Cloud Based', '24/7 Support'].map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 justify-center md:justify-start">
-                                    <CheckCircle size={20} className="text-indigo-600" />
-                                    <span className="font-medium text-slate-700">{item}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
+const TEAM = [
+  { name: 'Dr. Sarah Johnson', role: 'Academic Director', initials: 'SJ' },
+  { name: 'Prof. Ahmed Khan', role: 'Technical Lead', initials: 'AK' },
+  { name: 'Maria Gonzalez', role: 'Student Affairs', initials: 'MG' },
+];
 
-            {/* Stats Section */}
-            <div className="bg-slate-900 py-16 text-white text-center">
-                <div className="container mx-auto px-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        <div>
-                            <div className="text-4xl font-bold text-indigo-400 mb-2">50+</div>
-                            <div className="text-gray-400">Institutions</div>
-                        </div>
-                        <div>
-                            <div className="text-4xl font-bold text-purple-400 mb-2">10k+</div>
-                            <div className="text-gray-400">Students</div>
-                        </div>
-                        <div>
-                            <div className="text-4xl font-bold text-emerald-400 mb-2">500+</div>
-                            <div className="text-gray-400">Teachers</div>
-                        </div>
-                        <div>
-                            <div className="text-4xl font-bold text-blue-400 mb-2">99%</div>
-                            <div className="text-gray-400">Satisfaction</div>
-                        </div>
-                    </div>
-                </div>
+const HIGHLIGHTS = [
+  { icon: '🏫', title: 'Multi-Department Support', desc: 'Manage multiple departments, programs, and year levels from a single unified platform.' },
+  { icon: '📱', title: 'Fully Responsive', desc: 'Access the system from any device — desktop, tablet, or smartphone with a consistent experience.' },
+  { icon: '🔐', title: 'Secure & Reliable', desc: 'Built with enterprise-grade security practices including role-based access control and encrypted sessions.' },
+  { icon: '📈', title: 'Real-time Analytics', desc: 'Track attendance, performance, and enrollment trends with live dashboard analytics and reporting.' },
+];
+
+export default function About() {
+  return (
+    <>
+      <Navbar />
+
+      {/* Hero */}
+      <section className="about-hero">
+        <h1>About CollegeMS</h1>
+        <p>
+          We're building the future of academic management — a platform that empowers institutions
+          to focus on what matters most: education.
+        </p>
+      </section>
+
+      {/* Values */}
+      <div className="about-content">
+        <div className="about-grid">
+          {VALUES.map((v) => (
+            <div key={v.title} className="about-card">
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>{v.icon}</div>
+              <h3>{v.title}</h3>
+              <p>{v.desc}</p>
             </div>
+          ))}
         </div>
-    );
-};
 
-export default About;
+        {/* Highlights */}
+        <div className="section-header" style={{ marginTop: '2rem' }}>
+          <h2>Why Choose Us</h2>
+          <p>Built with modern technology and designed for real academic workflows.</p>
+        </div>
+        <div className="features-grid" style={{ maxWidth: '100%' }}>
+          {HIGHLIGHTS.map((h) => (
+            <div key={h.title} className="feature-card">
+              <div className="feature-icon indigo">{h.icon}</div>
+              <h3>{h.title}</h3>
+              <p>{h.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Team */}
+      <section className="team-section">
+        <div className="section-header">
+          <h2>Leadership Team</h2>
+          <p>Meet the people behind CollegeMS who are passionate about transforming education.</p>
+        </div>
+        <div className="team-grid">
+          {TEAM.map((t) => (
+            <div key={t.name} className="team-card">
+              <div className="team-avatar">{t.initials}</div>
+              <h4>{t.name}</h4>
+              <div className="team-role">{t.role}</div>
+              <p>Dedicated to making academic management accessible and efficient for all stakeholders.</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="site-footer">
+        <p>© {new Date().getFullYear()} College Management System. All rights reserved.</p>
+      </footer>
+    </>
+  );
+}

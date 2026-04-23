@@ -1,63 +1,55 @@
-// frontend/src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api, clearStoredSession, setStoredSessionId } from '../api';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    const api = axios.create({
-        baseURL: window.location.hostname === 'localhost' ? 'http://localhost:8000' : '/backend',
-        withCredentials: true,
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
+  const refresh = useCallback(async () => {
+    try {
+      const data = await api('auth/me');
+      setUser(data.user && data.ok ? data.user : null);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    useEffect(() => {
-        checkAuth();
-    }, []);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-    const checkAuth = async () => {
-        try {
-            const res = await api.get('/auth.php?action=check');
-            if (res.data.authenticated) {
-                setUser(res.data.user);
-            } else {
-                setUser(null);
-            }
-        } catch (error) {
-            console.error("Auth check failed", error);
-            setUser(null);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const login = useCallback(async (email, password) => {
+    clearStoredSession();
+    const data = await api('auth/login', { method: 'POST', body: { email, password } });
+    if (data.session_id) setStoredSessionId(data.session_id);
+    setUser(data.user);
+    return data.user;
+  }, []);
 
-    const login = async (email, password) => {
-        try {
-            const res = await api.post('/auth.php?action=login', { email, password });
-            if (res.data.success) {
-                setUser(res.data.user);
-                return { success: true };
-            }
-        } catch (error) {
-            return { success: false, error: error.response?.data?.error || 'Login failed' };
-        }
-    };
+  const logout = useCallback(async () => {
+    try {
+      await api('auth/logout', { method: 'POST' });
+    } catch {
+      /* ignore */
+    }
+    clearStoredSession();
+    setUser(null);
+  }, []);
 
-    const logout = async () => {
-        await api.post('/auth.php?action=logout');
-        setUser(null);
-    };
+  const value = useMemo(
+    () => ({ user, loading, login, logout, refresh }),
+    [user, loading, login, logout, refresh]
+  );
 
-    return (
-        <AuthContext.Provider value={{ user, login, logout, loading, api }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth outside AuthProvider');
+  return ctx;
+}

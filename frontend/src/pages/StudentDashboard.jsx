@@ -1,216 +1,268 @@
-// frontend/src/pages/StudentDashboard.jsx
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { BookOpen, Calendar, BarChart2, LogOut, CheckCircle, PlusCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api, apiUrl, getSessionHeaders } from '../api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+import DashboardLayout from '../components/DashboardLayout';
+import Spinner from '../components/Spinner';
 
-const StudentDashboard = () => {
-    const { user, api, logout } = useAuth();
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('overview');
+const NAV = [
+  { id: 'catalog', label: 'Course Catalog' },
+  { id: 'courses', label: 'My Courses' },
+  { id: 'course', label: 'Course Workspace' },
+];
 
-    // Data States
-    const [attendance, setAttendance] = useState([]);
-    const [myCourses, setMyCourses] = useState([]);
-    const [availableCourses, setAvailableCourses] = useState([]);
-    const [marks, setMarks] = useState([]);
+export default function StudentDashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [tab, setTab] = useState('catalog');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [catalog, setCatalog] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [offeringId, setOfferingId] = useState('');
+  const [assignments, setAssignments] = useState([]);
+  const [attendance, setAttendance] = useState(null);
+  const [marks, setMarks] = useState([]);
+  const [finalRes, setFinalRes] = useState(null);
 
-    useEffect(() => {
-        if (activeTab === 'overview' || activeTab === 'results' || activeTab === 'attendance') fetchUserData();
-        if (activeTab === 'courses') fetchAvailableCourses();
-    }, [activeTab]);
+  const approved = enrollments.filter((e) => e.status === 'approved');
 
-    const fetchUserData = async () => {
-        try {
-            const attRes = await api.get('/student.php?action=attendance');
-            setAttendance(attRes.data);
-            const markRes = await api.get('/student.php?action=marks');
-            setMarks(markRes.data);
-            const coursesRes = await api.get('/student.php?action=my_courses');
-            setMyCourses(coursesRes.data);
-        } catch (error) { console.error("Error fetching data"); }
-    };
+  const loadCatalog = useCallback(async () => { const d = await api('student/catalog'); setCatalog(d.offerings || []); }, []);
+  const loadEnrollments = useCallback(async () => { const d = await api('enrollments'); setEnrollments(d.enrollments || []); }, []);
+  const loadAssignments = useCallback(async () => { if (!offeringId) { setAssignments([]); return; } const d = await api('assignments', { params: { course_offering_id: offeringId } }); setAssignments(d.assignments || []); }, [offeringId]);
+  const loadAttendance = useCallback(async () => { if (!offeringId) { setAttendance(null); return; } const d = await api('attendance', { params: { course_offering_id: offeringId } }); setAttendance(d); }, [offeringId]);
+  const loadMarks = useCallback(async () => { if (!offeringId) { setMarks([]); return; } const d = await api('marks', { params: { course_offering_id: offeringId } }); setMarks(d.marks || []); }, [offeringId]);
+  const loadFinal = useCallback(async () => { if (!offeringId) { setFinalRes(null); return; } const d = await api('final-results', { params: { course_offering_id: offeringId } }); setFinalRes(d.result || null); }, [offeringId]);
 
-    const fetchAvailableCourses = async () => {
-        try {
-            const res = await api.get('/student.php?action=available_courses');
-            setAvailableCourses(res.data);
-            const myRes = await api.get('/student.php?action=my_courses'); // Also refresh enrolled
-            setMyCourses(myRes.data);
-        } catch (error) { console.error("Error fetching courses"); }
-    };
+  useEffect(() => {
+    setErr(''); setLoading(true);
+    (async () => {
+      try {
+        if (tab === 'catalog') await loadCatalog();
+        if (tab === 'courses') await loadEnrollments();
+      } catch (e) { setErr(e.message); }
+      finally { setLoading(false); }
+    })();
+  }, [tab, loadCatalog, loadEnrollments]);
 
-    const handleEnroll = async (subjectId) => {
-        try {
-            await api.post('/student.php?action=enroll', { subject_id: subjectId });
-            alert("Enrolled Successfully!");
-            fetchAvailableCourses(); // Refresh list associated
-            fetchUserData(); // Refresh overview count
-        } catch (error) {
-            alert("Enrollment Failed");
-        }
-    };
+  useEffect(() => { if (approved.length && !offeringId) setOfferingId(String(approved[0].course_offering_id)); }, [approved, offeringId]);
 
-    const handleLogout = async () => {
-        await logout();
-        navigate('/');
-    };
+  useEffect(() => {
+    if (tab !== 'course' || !offeringId) return;
+    setErr('');
+    (async () => { try { await Promise.all([loadAssignments(), loadAttendance(), loadMarks(), loadFinal()]); } catch (e) { setErr(e.message); } })();
+  }, [tab, offeringId, loadAssignments, loadAttendance, loadMarks, loadFinal]);
 
-    const presentCount = attendance.filter(a => a.status === 'Present').length;
-    const totalDays = attendance.length;
-    const percentage = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
+  async function requestEnrollment(oid) {
+    try { await api('enrollments', { method: 'POST', body: { action: 'request', course_offering_id: oid } }); toast('Enrollment requested'); await loadCatalog(); await loadEnrollments(); }
+    catch (e) { setErr(e.message); }
+  }
 
-    return (
-        <div className="dashboard-layout bg-gray-100 flex">
-            {/* Sidebar */}
-            <div className="sidebar bg-slate-900 text-white w-64 hidden md:flex flex-col h-screen fixed">
-                <div className="p-6 border-b border-slate-800">
-                    <h2 className="text-2xl font-bold tracking-wider text-indigo-400">STUDENT</h2>
-                    <p className="text-gray-400 text-sm truncate">{user.name}</p>
-                    <p className="text-xs text-gray-500 font-mono mt-1">{user.username}</p>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    <button onClick={() => setActiveTab('overview')} className={`w-full sidebar-link ${activeTab === 'overview' ? 'active' : ''}`}>
-                        <BarChart2 size={20} /> Overview
-                    </button>
-                    <button onClick={() => setActiveTab('courses')} className={`w-full sidebar-link ${activeTab === 'courses' ? 'active' : ''}`}>
-                        <PlusCircle size={20} /> Register Courses
-                    </button>
-                    <button onClick={() => setActiveTab('attendance')} className={`w-full sidebar-link ${activeTab === 'attendance' ? 'active' : ''}`}>
-                        <Calendar size={20} /> Attendance
-                    </button>
-                    <button onClick={() => setActiveTab('results')} className={`w-full sidebar-link ${activeTab === 'results' ? 'active' : ''}`}>
-                        <BookOpen size={20} /> Results
-                    </button>
-                </nav>
-                <div className="p-4 border-t border-slate-800">
-                    <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-red-400 hover:bg-white/5 p-2 rounded-lg transition-colors">
-                        <LogOut size={18} /> Logout
-                    </button>
-                </div>
+  async function submitAssignment(aid, e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    fd.set('assignment_id', aid);
+    try {
+      const res = await fetch(apiUrl('submissions/upload'), { method: 'POST', body: fd, credentials: 'include', headers: getSessionHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      e.target.reset(); toast('Submission uploaded'); await loadAssignments();
+    } catch (ex) { setErr(ex.message); }
+  }
+
+  async function handleLogout() { await logout(); navigate('/login'); }
+
+  // Attendance percentage color
+  const attPct = attendance?.percentage;
+  const attColor = attPct == null ? '' : attPct >= 75 ? 'green' : attPct >= 50 ? 'amber' : 'red';
+
+  return (
+    <DashboardLayout title="Student" role="student" userName={user?.full_name} navItems={NAV} active={tab} onNav={setTab} onLogout={handleLogout}>
+      {err && <div className="alert alert-error" role="alert">{err}</div>}
+
+      {tab === 'catalog' && (
+        <div className="fade-in">
+          <header className="dashboard-header">
+            <div>
+              <h1 className="page-title">Course Catalog</h1>
+              <p className="page-subtitle">Browse and enroll in available course offerings for the current term.</p>
             </div>
+          </header>
 
-            {/* Main Content */}
-            <div className="main-content flex-1 p-8 md:ml-64 bg-gray-50 min-h-screen">
-                <header className="mb-8">
-                    <h1 className="text-3xl font-bold text-slate-800 capitalize">
-                        {activeTab === 'overview' ? `Welcome, ${user.name.split(' ')[0]}` : activeTab}
-                    </h1>
-                </header>
-
-                {activeTab === 'overview' && (
-                    <div className="grid md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
-                            <p className="text-indigo-600 font-semibold mb-1">Attendance</p>
-                            <h3 className="text-4xl font-bold text-slate-800">{percentage}%</h3>
-                            <p className="text-sm text-gray-400 mt-1">Overall</p>
-                        </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
-                            <p className="text-emerald-600 font-semibold mb-1">Enrolled Courses</p>
-                            <h3 className="text-4xl font-bold text-slate-800">{myCourses.length}</h3>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'courses' && (
-                    <div className="space-y-8">
-                        {/* Available Courses */}
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">Available for Registration</h2>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {availableCourses.map(course => (
-                                    <div key={course.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-800">{course.name}</h3>
-                                            <p className="text-sm text-gray-500 mb-1">Code: {course.code}</p>
-                                            <p className="text-sm text-indigo-600 font-medium">Instructor: {course.teacher_name}</p>
-                                        </div>
-                                        <button onClick={() => handleEnroll(course.id)} className="btn btn-primary text-sm px-4 py-2">
-                                            Enroll Now
-                                        </button>
-                                    </div>
-                                ))}
-                                {availableCourses.length === 0 && <p className="text-gray-500">No new courses available.</p>}
-                            </div>
-                        </div>
-
-                        {/* Enrolled Courses */}
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">My Enrolled Courses</h2>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {myCourses.map(course => (
-                                    <div key={course.id} className="bg-green-50 p-6 rounded-xl border border-green-100 shadow-sm flex items-center gap-4">
-                                        <CheckCircle className="text-green-600" size={24} />
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-800">{course.name}</h3>
-                                            <p className="text-sm text-gray-500">{course.teacher_name}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'attendance' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th className="p-4 font-semibold text-gray-600">Date</th>
-                                    <th className="p-4 font-semibold text-gray-600">Course</th>
-                                    <th className="p-4 font-semibold text-gray-600">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {attendance.map((record, index) => (
-                                    <tr key={index} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                                        <td className="p-4 text-gray-800">{record.date}</td>
-                                        <td className="p-4 text-gray-600">{record.subject_name || record.code}</td>
-                                        <td className="p-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${record.status === 'Present' ? 'bg-emerald-100 text-emerald-700' :
-                                                    record.status === 'Absent' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                                                }`}>
-                                                {record.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {attendance.length === 0 && (
-                                    <tr>
-                                        <td colSpan="3" className="p-8 text-center text-gray-400">No attendance records found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {activeTab === 'results' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th className="p-4 font-semibold text-gray-600">Subject</th>
-                                    <th className="p-4 font-semibold text-gray-600">Type</th>
-                                    <th className="p-4 font-semibold text-gray-600">Marks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {marks.map((m, i) => (
-                                    <tr key={i} className="border-b hover:bg-gray-50">
-                                        <td className="p-4">{m.subject_name}</td>
-                                        <td className="p-4 text-gray-600 capitalize">{m.exam_type}</td>
-                                        <td className="p-4">{m.marks_obtained} / {m.total_marks}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+          {loading ? <div className="loading-state"><Spinner /></div> : (
+          <div className="card glass">
+            <div className="table-wrap">
+              <table className="data">
+                <thead><tr><th>Course</th><th>Class / Section</th><th>Teacher</th><th>Term</th><th>Action</th></tr></thead>
+                <tbody>
+                  {catalog.map((o) => (
+                    <tr key={o.id}>
+                      <td style={{ fontWeight: 600 }}>{o.code} — {o.title}</td>
+                      <td>{o.class_name} / {o.section_name}</td>
+                      <td className="muted">{o.teacher_name}</td>
+                      <td className="muted">{o.semester} {o.academic_year}</td>
+                      <td>
+                        {o.enrollment_status === 'approved' && <span className="badge badge-approved">Enrolled</span>}
+                        {o.enrollment_status === 'pending' && <span className="badge badge-pending">Pending</span>}
+                        {o.enrollment_status === 'rejected' && <span className="badge badge-rejected">Rejected</span>}
+                        {!o.enrollment_status && <button type="button" className="btn btn-primary btn-sm" onClick={() => requestEnrollment(o.id)}>Enroll Now</button>}
+                      </td>
+                    </tr>
+                  ))}
+                  {catalog.length === 0 && <tr><td colSpan={5} className="muted" style={{ textAlign: 'center', padding: '3rem' }}>No courses available at the moment.</td></tr>}
+                </tbody>
+              </table>
             </div>
+          </div>
+          )}
         </div>
-    );
-};
+      )}
 
-export default StudentDashboard;
+      {tab === 'courses' && (
+        <div className="fade-in">
+          <header className="dashboard-header">
+            <div>
+              <h1 className="page-title">My Courses</h1>
+              <p className="page-subtitle">View your active enrollments and academic status.</p>
+            </div>
+          </header>
+
+          {loading ? <div className="loading-state"><Spinner /></div> : (
+          <div className="card glass">
+            <div className="table-wrap">
+              <table className="data">
+                <thead><tr><th>Course</th><th>Teacher</th><th>Status</th></tr></thead>
+                <tbody>
+                  {enrollments.map((e) => (
+                    <tr key={e.id}>
+                      <td style={{ fontWeight: 600 }}>{e.code} — {e.title}</td>
+                      <td className="muted">{e.teacher_name}</td>
+                      <td><span className={`badge badge-${e.status}`}>{e.status}</span></td>
+                    </tr>
+                  ))}
+                  {enrollments.length === 0 && <tr><td colSpan={3} className="muted" style={{ textAlign: 'center', padding: '3rem' }}>You have not enrolled in any courses yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'course' && (
+        <div className="fade-in">
+          <header className="dashboard-header">
+            <div>
+              <h1 className="page-title">Course Workspace</h1>
+              <p className="page-subtitle">Access learning materials, track attendance, and view your grades.</p>
+            </div>
+          </header>
+
+          <div className="card glass">
+            <label style={{ fontWeight: 600 }}>Active Course
+              <select className="inp" value={offeringId} onChange={(e) => setOfferingId(e.target.value)} style={{ marginTop: '0.5rem', width: '100%', maxWidth: '400px' }}>
+                {approved.map((e) => (<option key={e.course_offering_id} value={e.course_offering_id}>{e.code} — {e.title}</option>))}
+              </select>
+            </label>
+            {approved.length === 0 && <div className="empty-state"><p>No active courses found. Browse the catalog to enroll.</p></div>}
+          </div>
+
+          {approved.length > 0 && (
+            <>
+              {/* Assignments */}
+              <div className="card">
+                <h3>Assignments & Quizzes</h3>
+                {assignments.map((a) => (
+                  <div key={a.id} style={{ borderTop: '1px solid var(--border-light)', padding: '1rem 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <strong>{a.title}</strong>
+                        <span className="badge badge-draft" style={{ marginLeft: 8 }}>{a.assignment_type}</span>
+                        <div className="muted">Due: {a.due_at || '—'}</div>
+                        {a.attachment_url && <a href={a.attachment_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ marginTop: '0.25rem' }}>Download Material</a>}
+                      </div>
+                      <form onSubmit={(ev) => submitAssignment(a.id, ev)} className="stack" style={{ minWidth: 220 }}>
+                        <textarea className="inp" name="text_content" placeholder="Notes or answer text" rows={2} />
+                        <input className="inp" name="file" type="file" />
+                        <button type="submit" className="btn btn-primary btn-sm">Submit</button>
+                        {a.my_submission && (
+                          <span className="muted" style={{ fontSize: '0.82rem' }}>
+                            ✓ Submitted {a.my_submission.submitted_at}
+                            {a.my_submission.marks_obtained != null && ` — Grade: ${a.my_submission.marks_obtained}`}
+                          </span>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                ))}
+                {assignments.length === 0 && <div className="empty-state"><p>No items posted yet.</p></div>}
+              </div>
+
+              {/* Attendance */}
+              <div className="card">
+                <h3>Attendance</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: attPct != null && attPct >= 75 ? 'var(--success)' : attPct != null && attPct >= 50 ? 'var(--warning)' : 'var(--danger)' }}>
+                      {attPct != null ? `${attPct}%` : '—'}
+                    </div>
+                    <div className="muted">Sessions: {attendance?.sessions_marked ?? 0}</div>
+                  </div>
+                  {attPct != null && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div className="progress-bar">
+                        <div className={`progress-fill ${attColor}`} style={{ width: `${attPct}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Marks */}
+              <div className="card">
+                <h3>Marks</h3>
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead><tr><th>Type</th><th>Title</th><th>Score</th></tr></thead>
+                    <tbody>
+                      {marks.map((m) => (
+                        <tr key={m.id}>
+                          <td><span className="badge badge-draft">{m.mark_type}</span></td>
+                          <td>{m.title}</td>
+                          <td style={{ fontWeight: 600 }}>{m.marks_obtained} / {m.max_marks}</td>
+                        </tr>
+                      ))}
+                      {marks.length === 0 && <tr><td colSpan={3} className="muted" style={{ textAlign: 'center' }}>No marks recorded yet.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Final Result */}
+              <div className="card">
+                <h3>Final Result</h3>
+                {finalRes && finalRes.status === 'approved' ? (
+                  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div>
+                      <div className="muted">Total Marks</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)' }}>{finalRes.total_marks}</div>
+                    </div>
+                    <div>
+                      <div className="muted">Grade</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>{finalRes.grade || '—'}</div>
+                    </div>
+                    <span className="badge badge-approved">Approved</span>
+                  </div>
+                ) : (
+                  <div className="empty-state"><p>Final grades appear here after the administrator approves them.</p></div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </DashboardLayout>
+  );
+}
